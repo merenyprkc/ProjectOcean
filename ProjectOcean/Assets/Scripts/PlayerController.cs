@@ -18,40 +18,56 @@ public class PlayerController : MonoBehaviour
     [SerializeField] private float groundDrag = 5f;
     [SerializeField] private float airMultiplier = 0.4f;
     private Rigidbody rb;
-    private InputSystem_Actions inputActions;
     private Vector2 moveInput;
 
     [Header("Camera Settings")]
     [SerializeField] private Transform cameraTransform;
-    [SerializeField] private float sensitivity = 10f;
+    [SerializeField] private float smoothTime = 0.05f;
+    [SerializeField] private float sensitivity = 0.1f;
     private float xRotation = 0f;
-    private Vector2 lookInput;
+    private Vector2 currentMouseDelta;
+    private Vector2 currentMouseDeltaVelocity;
+
 
     [Header("Check Settings")]
     [SerializeField] private LayerMask groundLayer;
     [SerializeField] private LayerMask waterLayer;
     [SerializeField] private float checkRadius = 0.15f;
 
-    private void Awake()
+    [Header("Animations")]
+    [SerializeField] private Animator animator;
+
+    private void Start()
     {
         rb = GetComponent<Rigidbody>();
-        inputActions = new InputSystem_Actions();
 
-        inputActions.Player.Jump.performed += ctx => Jump();
+        if (InputManager.Instance != null)
+        {
+            InputManager.Instance.OnJumpPressed += Jump;
+        }
+        else Debug.LogError("InputManager instance is null!");
 
         Cursor.visible = false;
         Cursor.lockState = CursorLockMode.Locked;
     }
 
-    private void OnEnable() => inputActions.Player.Enable();
-
-    private void OnDisable() => inputActions.Player.Disable();
+    private void OnDestroy()
+    {
+        if (InputManager.Instance != null)
+        {
+            InputManager.Instance.OnJumpPressed -= Jump;
+        }
+    }
 
     private void Update()
     {
-        moveInput = inputActions.Player.Move.ReadValue<Vector2>();
+        moveInput = InputManager.Instance.MoveInput;
 
         UpdatePlayerState();
+    }
+
+    private void LateUpdate()
+    {
         RotateCamera();
     }
 
@@ -71,6 +87,7 @@ public class PlayerController : MonoBehaviour
         }
 
         SpeedControl();
+        AnimationControl();
     }
 
     private void UpdatePlayerState()
@@ -111,25 +128,33 @@ public class PlayerController : MonoBehaviour
 
     private void Jump()
     {
-        rb.linearVelocity = new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
-        rb.AddForce(transform.up * jumpForce, ForceMode.Impulse);
+        if(currentState == PlayerState.Grounded)
+        {
+            rb.linearVelocity = new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
+            rb.AddForce(transform.up * jumpForce, ForceMode.Impulse);
+        }
     }
 
     #endregion
 
-    #region Camera Methods
+    #region Rotation Methods
 
     public void RotateCamera()
     {
-        lookInput = inputActions.Player.Look.ReadValue<Vector2>();
+        Vector2 targetMouseDelta = InputManager.Instance.LookInput;
 
-        float mouseX = lookInput.x * sensitivity;
-        float mouseY = lookInput.y * sensitivity;
+        // İŞTE SİHİRLİ SATIR BURASI: Ham gelen kaba değerleri, pürüzsüz bir eğriye dönüştürüyoruz
+        currentMouseDelta = Vector2.SmoothDamp(currentMouseDelta, targetMouseDelta, ref currentMouseDeltaVelocity, smoothTime);
 
+        float mouseX = currentMouseDelta.x * sensitivity;
+        float mouseY = currentMouseDelta.y * sensitivity;
+
+        // 1. Kamerayı Yukarı/Aşağı Eğme
         xRotation -= mouseY;
         xRotation = Mathf.Clamp(xRotation, -85f, 85f);
-
         cameraTransform.localRotation = Quaternion.Euler(xRotation, 0f, 0f);
+
+        // 2. Oyuncunun Gövdesini Sağa/Sola Döndürme
         transform.Rotate(Vector3.up * mouseX);
     }
 
@@ -166,6 +191,22 @@ public class PlayerController : MonoBehaviour
         {
             Vector3 limitedVelocity = flatVelocity.normalized * speed;
             rb.linearVelocity = new Vector3(limitedVelocity.x, rb.linearVelocity.y, limitedVelocity.z);
+        }
+    }
+
+    #endregion
+
+    #region Animations
+
+    private void AnimationControl()
+    {
+        if(currentState == PlayerState.Grounded)
+        {
+            animator.SetFloat("Speed", moveInput.magnitude);
+        }
+        else if(currentState == PlayerState.InAir)
+        {
+            animator.SetFloat("Speed", 0f);
         }
     }
 
