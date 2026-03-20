@@ -12,20 +12,20 @@ public class PlayerController : MonoBehaviour
     }
 
     [Header("Player Settings")]
-    private Rigidbody rb;
-    private InputSystem_Actions inputActions;
-    private Vector2 moveInput;
     public PlayerState currentState;
     [SerializeField] private float speed = 5f;
     [SerializeField] private float jumpForce = 5f;
     [SerializeField] private float groundDrag = 5f;
     [SerializeField] private float airMultiplier = 0.4f;
+    private Rigidbody rb;
+    private InputSystem_Actions inputActions;
+    private Vector2 moveInput;
 
     [Header("Camera Settings")]
-    private float xRotation = 0f;
-    private Vector2 lookInput;
     [SerializeField] private Transform cameraTransform;
     [SerializeField] private float sensitivity = 10f;
+    private float xRotation = 0f;
+    private Vector2 lookInput;
 
     [Header("Check Settings")]
     [SerializeField] private LayerMask groundLayer;
