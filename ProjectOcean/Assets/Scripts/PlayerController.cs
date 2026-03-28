@@ -14,19 +14,21 @@ public class PlayerController : MonoBehaviour
     [Header("Player Settings")]
     public PlayerState currentState;
     [SerializeField] private float speed = 5f;
+    [SerializeField] private float sprintSpeed = 8f;
     [SerializeField] private float jumpForce = 5f;
     [SerializeField] private float groundDrag = 5f;
     [SerializeField] private float airMultiplier = 0.4f;
     private Rigidbody rb;
     private Vector2 moveInput;
+    private Vector2 lookInput;
+    private float yRotation = 0f;
 
     [Header("Camera Settings")]
     [SerializeField] private Transform cameraTransform;
-    [SerializeField] private float smoothTime = 0.05f;
     [SerializeField] private float sensitivity = 0.1f;
+    [SerializeField] private float sprintFOV = 80f;
+    [SerializeField] private float normalFOV = 60f;
     private float xRotation = 0f;
-    private Vector2 currentMouseDelta;
-    private Vector2 currentMouseDeltaVelocity;
 
 
     [Header("Check Settings")]
@@ -40,6 +42,10 @@ public class PlayerController : MonoBehaviour
     private void Start()
     {
         rb = GetComponent<Rigidbody>();
+        rb.interpolation = RigidbodyInterpolation.Interpolate;
+        rb.freezeRotation = true;
+
+        yRotation = transform.eulerAngles.y;
 
         if (InputManager.Instance != null)
         {
@@ -62,6 +68,7 @@ public class PlayerController : MonoBehaviour
     private void Update()
     {
         moveInput = InputManager.Instance.MoveInput;
+        lookInput = InputManager.Instance.LookInput;
 
         UpdatePlayerState();
     }
@@ -112,8 +119,20 @@ public class PlayerController : MonoBehaviour
     {
         Vector2 input = moveInput;
         Vector3 moveDirection = transform.forward * input.y + transform.right * input.x;
+
+        Vector3 force = moveDirection.normalized * speed * 10f;
+
+        if(InputManager.Instance.IsSprinting)
+        {
+            cameraTransform.GetComponent<Camera>().fieldOfView = Mathf.Lerp(cameraTransform.GetComponent<Camera>().fieldOfView, sprintFOV, Time.deltaTime * 10f);
+            force = moveDirection.normalized * sprintSpeed * 10f;
+        }
+        else
+        {
+            cameraTransform.GetComponent<Camera>().fieldOfView = Mathf.Lerp(cameraTransform.GetComponent<Camera>().fieldOfView, normalFOV, Time.deltaTime * 10f);
+        }
         
-        rb.AddForce(moveDirection.normalized * speed * 10f, ForceMode.Force);
+        rb.AddForce(force, ForceMode.Force);
         rb.linearDamping = groundDrag;
     }
 
@@ -121,8 +140,9 @@ public class PlayerController : MonoBehaviour
     {
         Vector2 input = moveInput;
         Vector3 moveDirection = transform.forward * input.y + transform.right * input.x;
-        
-        rb.AddForce(moveDirection.normalized * speed * 10f * airMultiplier, ForceMode.Force);
+        Vector3 force = moveDirection.normalized * speed * 10f * airMultiplier;
+
+        rb.AddForce(force, ForceMode.Force);
         rb.linearDamping = 0f;
     }
 
@@ -141,21 +161,17 @@ public class PlayerController : MonoBehaviour
 
     public void RotateCamera()
     {
-        Vector2 targetMouseDelta = InputManager.Instance.LookInput;
+        float mouseX = lookInput.x * sensitivity;
+        float mouseY = lookInput.y * sensitivity;
 
-        // İŞTE SİHİRLİ SATIR BURASI: Ham gelen kaba değerleri, pürüzsüz bir eğriye dönüştürüyoruz
-        currentMouseDelta = Vector2.SmoothDamp(currentMouseDelta, targetMouseDelta, ref currentMouseDeltaVelocity, smoothTime);
-
-        float mouseX = currentMouseDelta.x * sensitivity;
-        float mouseY = currentMouseDelta.y * sensitivity;
-
-        // 1. Kamerayı Yukarı/Aşağı Eğme
+        // 1. Kamerayı Yukarı/Aşağı Eğme (Pitch)
         xRotation -= mouseY;
         xRotation = Mathf.Clamp(xRotation, -85f, 85f);
         cameraTransform.localRotation = Quaternion.Euler(xRotation, 0f, 0f);
 
-        // 2. Oyuncunun Gövdesini Sağa/Sola Döndürme
-        transform.Rotate(Vector3.up * mouseX);
+        // 2. Oyuncunun Gövdesini Sağa/Sola Döndürme (Yaw)
+        yRotation += mouseX;
+        rb.MoveRotation(Quaternion.Euler(0f, yRotation, 0f));
     }
 
     #endregion

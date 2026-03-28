@@ -1552,11 +1552,14 @@ MonoBehaviour:
   m_EditorClassIdentifier: '::'
   currentState: 0
   speed: 5
+  sprintSpeed: 8
   jumpForce: 5
   groundDrag: 5
   airMultiplier: 0.4
   cameraTransform: {fileID: 330585546}
   sensitivity: 0.1
+  sprintFOV: 80
+  normalFOV: 60
   groundLayer:
     serializedVersion: 2
     m_Bits: 8
