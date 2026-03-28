@@ -11,6 +11,8 @@ public class PlayerController : MonoBehaviour
         Swimming
     }
 
+    private PlayerGeneral playerGeneral;
+
     [Header("Player Settings")]
     public PlayerState currentState;
     [SerializeField] private float speed = 5f;
@@ -29,6 +31,7 @@ public class PlayerController : MonoBehaviour
     [SerializeField] private float sprintFOV = 80f;
     [SerializeField] private float normalFOV = 60f;
     private float xRotation = 0f;
+    private Camera playerCamera;
 
 
     [Header("Check Settings")]
@@ -45,13 +48,14 @@ public class PlayerController : MonoBehaviour
         rb.interpolation = RigidbodyInterpolation.Interpolate;
         rb.freezeRotation = true;
 
+        playerCamera = cameraTransform.GetComponent<Camera>();
+
         yRotation = transform.eulerAngles.y;
 
-        if (InputManager.Instance != null)
-        {
-            InputManager.Instance.OnJumpPressed += Jump;
-        }
+        if (InputManager.Instance != null) InputManager.Instance.OnJumpPressed += Jump;
         else Debug.LogError("InputManager instance is null!");
+
+        playerGeneral = GetComponent<PlayerGeneral>();
 
         Cursor.visible = false;
         Cursor.lockState = CursorLockMode.Locked;
@@ -124,12 +128,13 @@ public class PlayerController : MonoBehaviour
 
         if(InputManager.Instance.IsSprinting)
         {
-            cameraTransform.GetComponent<Camera>().fieldOfView = Mathf.Lerp(cameraTransform.GetComponent<Camera>().fieldOfView, sprintFOV, Time.deltaTime * 10f);
+            playerCamera.fieldOfView = Mathf.Lerp(playerCamera.fieldOfView, sprintFOV, Time.deltaTime * 10f);
             force = moveDirection.normalized * sprintSpeed * 10f;
+            playerGeneral.DecreaseStamina();
         }
         else
         {
-            cameraTransform.GetComponent<Camera>().fieldOfView = Mathf.Lerp(cameraTransform.GetComponent<Camera>().fieldOfView, normalFOV, Time.deltaTime * 10f);
+            playerCamera.fieldOfView = Mathf.Lerp(playerCamera.fieldOfView, normalFOV, Time.deltaTime * 10f);
         }
         
         rb.AddForce(force, ForceMode.Force);
@@ -152,6 +157,8 @@ public class PlayerController : MonoBehaviour
         {
             rb.linearVelocity = new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
             rb.AddForce(transform.up * jumpForce, ForceMode.Impulse);
+            
+            playerGeneral.DecreaseStamina(7.5f);
         }
     }
 

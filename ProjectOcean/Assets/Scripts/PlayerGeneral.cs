@@ -4,14 +4,24 @@ using UnityEngine;
 public class PlayerGeneral : MonoBehaviour
 {
     [Header("Settings")]
+    // --- MAX VALUES ---
     [SerializeField] private float maxHealth = 100f;
     [SerializeField] private float maxStamina = 100f;
     [SerializeField] private float maxHunger = 100f;
     [SerializeField] private float maxThirst = 100f;
+    // --- DECREASE RATES ---
     [SerializeField] private float healthDecreaseRate = 1f;
     [SerializeField] private float staminaDecreaseRate = 2f;
     [SerializeField] private float hungerDecreaseRate = 1f;
     [SerializeField] private float thirstDecreaseRate = 1.5f;
+    // --- RESTORE RATES ---
+    [SerializeField] private float healthRestoreRate = 5f;
+    [SerializeField] private float staminaRestoreRate = 10f;
+    // --- DELAYS ---
+    [SerializeField] private float staminaRestoreDelay = 3f;
+
+    private float lastStaminaUseTime;
+    private float cachedHealth, cachedStamina, cachedHunger, cachedThirst;
 
     private float currentHealth;
     private float currentStamina;
@@ -44,8 +54,9 @@ public class PlayerGeneral : MonoBehaviour
 
     private void Update()
     {
-        DecreaseStats();
+        DecreaseStatsOvertime();
         CheckConditions();
+        RestoreStaminaOvertime();
     }
 
     private void LateUpdate()
@@ -53,35 +64,59 @@ public class PlayerGeneral : MonoBehaviour
         UpdateUI();
     }
 
-    private void DecreaseStats()
+    private void DecreaseStatsOvertime()
     {
-        currentStamina -= staminaDecreaseRate * Time.deltaTime;
         currentHunger -= hungerDecreaseRate * Time.deltaTime;
         currentThirst -= thirstDecreaseRate * Time.deltaTime;
 
-        currentStamina = Mathf.Clamp(currentStamina, 0, maxStamina);
         currentHunger = Mathf.Clamp(currentHunger, 0, maxHunger);
         currentThirst = Mathf.Clamp(currentThirst, 0, maxThirst);
     }
 
+    private void RestoreStaminaOvertime()
+    {
+        if (currentStamina < maxStamina && Time.time - lastStaminaUseTime >= staminaRestoreDelay)
+        {
+            currentStamina += staminaRestoreRate * Time.deltaTime;
+            currentStamina = Mathf.Clamp(currentStamina, 0, maxStamina);
+        }
+    }
+
     private void CheckConditions()
     {
-        if((currentHunger <= 0 && currentThirst > 0) || (currentThirst <= 0 && currentHunger > 0))
-        {
-            currentHealth -= healthDecreaseRate * Time.deltaTime;
-        }
-        else if(currentHunger <= 0 && currentThirst <= 0)
-        {
+        bool hungerEmpty = currentHunger <= 0;
+        bool thirstEmpty = currentThirst <= 0;
+
+        if (hungerEmpty && thirstEmpty)
             currentHealth -= healthDecreaseRate * 2f * Time.deltaTime;
-        }
+        else if (hungerEmpty || thirstEmpty)
+            currentHealth -= healthDecreaseRate * Time.deltaTime;
+
+        currentHealth = Mathf.Clamp(currentHealth, 0f, maxHealth);
     }
 
     private void UpdateUI()
     {
-        healthText.text = $"Health: {currentHealth:F1}/{maxHealth}";
-        staminaText.text = $"Stamina: {currentStamina:F1}/{maxStamina}";
-        hungerText.text = $"Hunger: {currentHunger:F1}/{maxHunger}";
-        thirstText.text = $"Thirst: {currentThirst:F1}/{maxThirst}";
+        if (!Mathf.Approximately(cachedHealth, currentHealth))
+        {
+            cachedHealth = currentHealth;
+            healthText.text = $"Health: {currentHealth:F1}/{maxHealth}";
+        }
+        if (!Mathf.Approximately(cachedStamina, currentStamina))
+        {
+            cachedStamina = currentStamina;
+            staminaText.text = $"Stamina: {currentStamina:F1}/{maxStamina}";
+        }
+        if (!Mathf.Approximately(cachedHunger, currentHunger))
+        {
+            cachedHunger = currentHunger;
+            hungerText.text = $"Hunger: {currentHunger:F1}/{maxHunger}";
+        }
+        if (!Mathf.Approximately(cachedThirst, currentThirst))
+        {
+            cachedThirst = currentThirst;
+            thirstText.text = $"Thirst: {currentThirst:F1}/{maxThirst}";
+        }
     }
 
     private void Die()
@@ -103,6 +138,14 @@ public class PlayerGeneral : MonoBehaviour
     {
         currentStamina -= amount;
         currentStamina = Mathf.Clamp(currentStamina, 0, maxStamina);
+        lastStaminaUseTime = Time.time;
+    }
+
+    public void DecreaseStamina()
+    {
+        currentStamina -= staminaDecreaseRate * Time.deltaTime;
+        currentStamina = Mathf.Clamp(currentStamina, 0, maxStamina);
+        lastStaminaUseTime = Time.time;
     }
 
     public void DecreaseHunger(float amount)

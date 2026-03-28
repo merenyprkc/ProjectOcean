@@ -26,6 +26,7 @@ public class InputManager : MonoBehaviour
 
         inputActions.Player.Interact.performed += ctx => OnInteractPressed?.Invoke();
         inputActions.Player.Jump.performed += ctx => OnJumpPressed?.Invoke();
+        inputActions.Player.Screenshot.performed += ctx => GetScreenshot();
     }
 
     private void Update()
@@ -33,6 +34,14 @@ public class InputManager : MonoBehaviour
         MoveInput = inputActions.Player.Move.ReadValue<Vector2>();
         LookInput = inputActions.Player.Look.ReadValue<Vector2>();   
         IsSprinting = inputActions.Player.Sprint.IsPressed();
+    }
+
+    private void GetScreenshot()
+    {
+        string timestamp = DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss");
+        string filename = $"Screenshot_{timestamp}.png";
+        ScreenCapture.CaptureScreenshot(filename);
+        Debug.Log($"Screenshot taken: {filename}");
     }
 
     private void OnEnable() => inputActions.Enable();
