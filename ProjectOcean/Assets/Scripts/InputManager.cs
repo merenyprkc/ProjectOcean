@@ -8,6 +8,7 @@ public class InputManager : MonoBehaviour
 
     public event Action OnInteractPressed;
     public event Action OnJumpPressed;
+    public event Action OnInventoryToggle;
 
     public Vector2 MoveInput { get; private set; }
     public Vector2 LookInput { get; private set; }
@@ -27,6 +28,7 @@ public class InputManager : MonoBehaviour
         inputActions.Player.Interact.performed += ctx => OnInteractPressed?.Invoke();
         inputActions.Player.Jump.performed += ctx => OnJumpPressed?.Invoke();
         inputActions.Player.Screenshot.performed += ctx => GetScreenshot();
+        inputActions.Player.Inventory.performed += ctx => OpenCloseInventory();
     }
 
     private void Update()
@@ -44,9 +46,29 @@ public class InputManager : MonoBehaviour
         Debug.Log($"Screenshot taken: {filename}");
     }
 
+    private void OpenCloseInventory()
+    {
+        OnInventoryToggle?.Invoke();
+    }
+
     private void OnEnable() => inputActions.Enable();
     private void OnDisable() => inputActions.Disable();
 
-    public void EnablePlayerControls() => inputActions.Player.Enable();
-    public void DisablePlayerControls() => inputActions.Player.Disable();
+    public void EnablePlayerControls()
+    {
+        inputActions.Player.Move.Enable();
+        inputActions.Player.Look.Enable();
+        inputActions.Player.Sprint.Enable();
+        inputActions.Player.Jump.Enable();
+        inputActions.Player.Interact.Enable();
+    }
+
+    public void DisablePlayerControls()
+    {
+        inputActions.Player.Move.Disable();
+        inputActions.Player.Look.Disable();
+        inputActions.Player.Sprint.Disable();
+        inputActions.Player.Jump.Disable();
+        inputActions.Player.Interact.Disable();
+    }
 }

@@ -6,6 +6,7 @@ using UnityEditor;
 
 public class Item : ScriptableObject
 {
+    [Header("Item Properties")]
     public int itemID;
     public string itemName;
     [TextArea] public string itemDescription;
@@ -14,7 +15,10 @@ public class Item : ScriptableObject
     public float itemValue;
     public bool isStackable = true;
     public int itemStackLimit = 16;
-    public GameObject itemPrefab;
+
+    [Header("Prefabs")]
+    public GameObject worldItemPrefab;
+    public GameObject handItemPrefab;
 
     #if UNITY_EDITOR
     protected virtual void Reset()
@@ -44,7 +48,7 @@ public class Item : ScriptableObject
 
 public enum ItemType
 {
-    None,          // Hiçbir tür atanmazsa varsayılan olarak None kullanılır.
+    None,          // Hiçbir tür atanmazsa varsayılan.
     Consumable,    // Elma, Armut, Su, vb.
     Medicine,      // Bandaj, İlaç, vb.
     Tool,          // Balta, Kazma, vb.

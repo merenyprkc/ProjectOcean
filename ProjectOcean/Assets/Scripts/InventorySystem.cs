@@ -26,55 +26,64 @@ public class InventorySystem : MonoBehaviour
 
     private void Start()
     {
-        for(int i = 0; i < slotCount; i++)
+        for (int i = 0; i < slotCount; i++)
         {
             inventorySlots.Add(new InventorySlot(null, 0));
         }
+
+        OnInventoryChanged?.Invoke();
     }
 
-    public bool AddItem(Item item, int quantity)
+    public int AddItem(Item item, int quantity)
     {
-        if(item == null || quantity <= 0)
+        if (item == null || quantity <= 0)
         {
             Debug.LogWarning("Invalid item or quantity.");
-            return false;
+            return 0;
         }
+
+        int originalQuantity = quantity;
 
         if (item.isStackable)
         {
             InventorySlot existingSlot = inventorySlots.Find(slot => slot.item == item);
             if (existingSlot != null)
             {
-                int totalQuantity = existingSlot.quantity + quantity;
-                if (totalQuantity <= item.itemStackLimit)
+                int canAdd = item.itemStackLimit - existingSlot.quantity;
+                if (canAdd > 0)
                 {
-                    existingSlot.quantity = totalQuantity;
-                    OnInventoryChanged?.Invoke();
-                    return true;
+                    int toAdd = Mathf.Min(quantity, canAdd);
+                    existingSlot.quantity += toAdd;
+                    quantity -= toAdd;
                 }
-                else
+
+                if (quantity <= 0)
                 {
-                    int remainingQuantity = totalQuantity - item.itemStackLimit;
-                    existingSlot.quantity = item.itemStackLimit;
-                    quantity = remainingQuantity;
+                    OnInventoryChanged?.Invoke();
+                    return originalQuantity;
                 }
             }
         }
 
         while (quantity > 0)
         {
-            if(inventorySlots.Count >= slotCount)
+            InventorySlot emptySlot = inventorySlots.Find(slot => slot.item == null);
+            if (emptySlot == null)
             {
                 Debug.LogWarning("Inventory is full. Cannot add more items.");
-                return false;
+                break;
             }
 
             int addQuantity = item.isStackable ? Mathf.Min(quantity, item.itemStackLimit) : 1;
-            inventorySlots.Add(new InventorySlot(item, addQuantity));
+            emptySlot.item = item;
+            emptySlot.quantity = addQuantity;
             quantity -= addQuantity;
         }
 
-        OnInventoryChanged?.Invoke();
-        return true;
+        int added = originalQuantity - quantity;
+        if (added > 0)
+            OnInventoryChanged?.Invoke();
+
+        return added;
     }
 }

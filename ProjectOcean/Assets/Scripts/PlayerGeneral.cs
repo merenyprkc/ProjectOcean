@@ -56,7 +56,7 @@ public class PlayerGeneral : MonoBehaviour
     {
         DecreaseStatsOvertime();
         CheckConditions();
-        RestoreStaminaOvertime();
+        RestoreStatsOvertime();
     }
 
     private void LateUpdate()
@@ -73,12 +73,18 @@ public class PlayerGeneral : MonoBehaviour
         currentThirst = Mathf.Clamp(currentThirst, 0, maxThirst);
     }
 
-    private void RestoreStaminaOvertime()
+    private void RestoreStatsOvertime()
     {
         if (currentStamina < maxStamina && Time.time - lastStaminaUseTime >= staminaRestoreDelay)
         {
             currentStamina += staminaRestoreRate * Time.deltaTime;
             currentStamina = Mathf.Clamp(currentStamina, 0, maxStamina);
+        }
+
+        if(currentHealth < maxHealth && currentHunger > 0 && currentThirst > 0)
+        {
+            currentHealth += healthRestoreRate * Time.deltaTime;
+            currentHealth = Mathf.Clamp(currentHealth, 0, maxHealth);
         }
     }
 

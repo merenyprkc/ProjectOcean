@@ -44,6 +44,7 @@ public class PlayerInteraction : MonoBehaviour
     {
         if(currentObject != null)
         {
+            currentObject.GetComponent<IInteractable>()?.Interact(gameObject);
             Debug.Log($"Interacted with {currentObject.name}");
         }
         else
